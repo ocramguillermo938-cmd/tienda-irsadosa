@@ -31,7 +31,7 @@ def conectar_hoja():
     )
     gc = gspread.authorize(creds)
     sh = gc.open_by_key(st.secrets["SHEET_ID"])
-    ws = sh.worksheet(st.secrets.get("SHEET_NAME", "Hoja1"))
+    ws = sh.worksheet(st.secrets.get("SHEET_NAME", "TIENDA"))
     return ws
 
 ws = conectar_hoja()
