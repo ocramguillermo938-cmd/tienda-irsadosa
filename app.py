@@ -30,8 +30,8 @@ def conectar_hoja():
         dict(st.secrets["gcp_service_account"]), scopes=scopes
     )
     gc = gspread.authorize(creds)
-    sh = gc.open_by_key(st.secrets["SHEET_ID"])
-    ws = sh.worksheet(st.secrets.get("SHEET_NAME", "TIENDA"))
+    sh = gc.open_by_key(st.secrets["sheets"]["SHEET_ID"])
+    ws = sh.worksheet(st.secrets["sheets"]["SHEET_NAME"])
     return ws
 
 ws = conectar_hoja()
