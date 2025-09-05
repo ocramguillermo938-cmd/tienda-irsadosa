@@ -3,6 +3,8 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 
+sh = gc.open_by_key(st.secrets["sheets"]["SHEET_ID"])
+
 # Configuración de página
 st.set_page_config(page_title="Tienda IRSADOSA", page_icon="assets/logo.png", layout="centered")
 st.markdown(
