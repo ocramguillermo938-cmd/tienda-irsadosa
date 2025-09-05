@@ -3,10 +3,13 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 
-sh = gc.open_by_key(st.secrets["sheets"]["SHEET_ID"])
+# ---------------- Configuración de página ----------------
+st.set_page_config(
+    page_title="Tienda IRSADOSA",
+    page_icon="assets/logo.png",
+    layout="centered"
+)
 
-# Configuración de página
-st.set_page_config(page_title="Tienda IRSADOSA", page_icon="assets/logo.png", layout="centered")
 st.markdown(
     """
     <h1 style="text-align:center;">
@@ -16,7 +19,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ---- Conexión a Google Sheets ----
+# ---------------- Conexión a Google Sheets ----------------
 @st.cache_resource
 def conectar_hoja():
     scopes = [
@@ -27,13 +30,13 @@ def conectar_hoja():
         dict(st.secrets["gcp_service_account"]), scopes=scopes
     )
     gc = gspread.authorize(creds)
-    sh = gc.open_by_key(st.secrets["SHEET_ID"])
-    ws = sh.worksheet(st.secrets.get("SHEET_NAME", "Hoja1"))
+    sh = gc.open_by_key(st.secrets["sheets"]["SHEET_ID"])
+    ws = sh.worksheet(st.secrets["sheets"].get("SHEET_NAME", "Hoja1"))
     return ws
 
 ws = conectar_hoja()
 
-# ---- Utilidades de datos ----
+# ---------------- Utilidades de datos ----------------
 COLUMNAS = ["NUMERO DE ARTICULO", "DESCRIPCION DEL ARTICULO", "PRECIOS MAYO", "DIVISA"]
 
 @st.cache_data(ttl=60)
@@ -42,53 +45,46 @@ def cargar_datos():
     df = pd.DataFrame(registros, dtype=str)
     if df.empty:
         df = pd.DataFrame(columns=COLUMNAS)
-    # Asegura columnas (por si la hoja aún no las tiene todas)
-    for c in COLUMNAS:
+    for c in COLUMNAS:  # asegura que siempre estén las columnas
         if c not in df.columns:
             df[c] = ""
     return df
 
 def upsert_articulo(num, desc, precio, divisa):
     """Actualiza si existe (col A), si no existe agrega al final."""
-    # Normaliza tipos
     num = str(num).strip()
     desc = str(desc).strip()
     divisa = str(divisa).strip().upper()
-    # Precio: permite coma o punto
+
+    # Precio: soporta coma o punto
     precio_str = str(precio).replace(",", ".").strip()
     try:
         precio_val = float(precio_str)
     except ValueError:
         raise ValueError(f"Precio inválido: {precio}")
 
-    # Busca el artículo en la columna A
     try:
         cell = ws.find(num)
         if cell and cell.col == 1:
-            # Actualiza fila existente
             ws.update_cell(cell.row, 2, desc)
             ws.update_cell(cell.row, 3, precio_val)
             ws.update_cell(cell.row, 4, divisa)
         else:
-            # No estaba en col A → crea
             ws.append_row([num, desc, precio_val, divisa], value_input_option="USER_ENTERED")
     except gspread.exceptions.CellNotFound:
-        # No existe → crea
         ws.append_row([num, desc, precio_val, divisa], value_input_option="USER_ENTERED")
 
-    # Limpia caché para que se vea el cambio
-    cargar_datos.clear()
+    cargar_datos.clear()  # refresca caché
 
 df = cargar_datos()
 
-# ---- Búsqueda manual ----
+# ---------------- Búsqueda manual ----------------
 st.subheader("Búsqueda manual")
 input_str = st.text_input("Ingresa números de artículo separados por comas (ej. 123,456,789)")
 
 if input_str:
     numeros = [x.strip() for x in input_str.split(",") if x.strip()]
-    encontrados = []
-    faltantes = []
+    encontrados, faltantes = [], []
 
     for n in numeros:
         m = df[df["NUMERO DE ARTICULO"] == n]
@@ -114,11 +110,14 @@ if input_str:
                     except Exception as e:
                         st.error(f"Error guardando {n}: {e}")
 
-# ---- Carga masiva por archivo (opcional) ----
+# ---------------- Carga masiva ----------------
 st.divider()
 st.subheader("Carga masiva (Excel/CSV) opcional")
-archivo = st.file_uploader("Sube un archivo con columnas: NUMERO DE ARTICULO, DESCRIPCION DEL ARTICULO, PRECIOS MAYO, DIVISA",
-                           type=["xlsx", "xls", "csv"])
+
+archivo = st.file_uploader(
+    "Sube un archivo con columnas: NUMERO DE ARTICULO, DESCRIPCION DEL ARTICULO, PRECIOS MAYO, DIVISA",
+    type=["xlsx", "xls", "csv"]
+)
 
 if archivo is not None:
     try:
@@ -126,9 +125,10 @@ if archivo is not None:
             df_up = pd.read_csv(archivo, dtype=str)
         else:
             df_up = pd.read_excel(archivo, dtype=str)
-        # Normaliza columnas
+
         df_up.columns = [c.strip().upper() for c in df_up.columns]
         faltan = [c for c in COLUMNAS if c not in df_up.columns]
+
         if faltan:
             st.error(f"Faltan columnas requeridas: {faltan}")
         else:
@@ -144,11 +144,13 @@ if archivo is not None:
                     procesadas += 1
                 except Exception as e:
                     errores.append(f"{row.get('NUMERO DE ARTICULO','?')}: {e}")
+
             st.success(f"Carga completada. Filas procesadas: {procesadas}")
             if errores:
                 st.warning("Algunas filas tuvieron errores:")
                 for e in errores:
                     st.write("- ", e)
+
     except Exception as e:
         st.error(f"No pude leer el archivo: {e}")
 
