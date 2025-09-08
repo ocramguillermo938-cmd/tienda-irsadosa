@@ -121,29 +121,29 @@ if resultados:
     df_resultados = pd.concat(resultados)
     st.dataframe(df_resultados)
 
-# --- OPCIÓN PARA ELIMINAR CON BOTÓN ---
-st.write("### Eliminar artículos:")
+    # --- OPCIÓN PARA ELIMINAR CON BOTÓN ---
+    st.write("### Eliminar artículos:")
 
-for idx, row in df_resultados.iterrows():
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.write(f"{row['NUMERO DE ARTICULO']} - {row['DESCRIPCION DEL ARTICULO']}")
-    with col2:
-        if st.button(f"🗑 Eliminar", key=f"del_{idx}"):
-            num_str = str(row["NUMERO DE ARTICULO"]).strip()
-            st.warning(f"¿Seguro que deseas eliminar {num_str}?")
-            if st.button(f"✅ Confirmar {num_str}", key=f"confirm_{idx}"):
-                try:
-                    cell = ws.find(num_str)
-                    if cell:
-                        ws.delete_rows(cell.row)
-                        cargar_datos.clear()
-                        st.success(f"✅ Artículo {num_str} eliminado correctamente.")
-                        st.rerun()
-                    else:
-                        st.error(f"❌ No se encontró el artículo {num_str} en Google Sheets.")
-                except Exception as e:
-                    st.error(f"⚠️ Error al eliminar {num_str}: {e}")
+    for idx, row in df_resultados.iterrows():
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.write(f"{row['NUMERO DE ARTICULO']} - {row['DESCRIPCION DEL ARTICULO']}")
+        with col2:
+            if st.button(f"🗑 Eliminar", key=f"del_{idx}"):
+               num_str = str(row["NUMERO DE ARTICULO"]).strip()
+               st.warning(f"¿Seguro que deseas eliminar {num_str}?")
+               if st.button(f"✅ Confirmar {num_str}", key=f"confirm_{idx}"):
+                   try:
+                       cell = ws.find(num_str)
+                       if cell:
+                           ws.delete_rows(cell.row)
+                           cargar_datos.clear()
+                           st.success(f"✅ Artículo {num_str} eliminado correctamente.")
+                           st.rerun()
+                       else:
+                           st.error(f"❌ No se encontró el artículo {num_str} en Google Sheets.")
+                   except Exception as e:
+                       st.error(f"⚠️ Error al eliminar {num_str}: {e}")
 
 # --- Mostrar no encontrados ---
 if no_encontrados:
