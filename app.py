@@ -115,36 +115,44 @@ st.divider()
 st.subheader("Carga masiva (Excel/CSV) opcional")
 
 archivo = st.file_uploader(
-    "Sube un archivo con columnas: NUMERO DE ARTICULO, DESCRIPCION DEL ARTICULO, PRECIOS MAYO, DIVISA",
+    "Sube un archivo con al menos la columna: NUMERO DE ARTICULO",
     type=["xlsx", "xls", "csv"]
 )
 
 if archivo is not None:
     try:
+        # Leer archivo según formato
         if archivo.name.lower().endswith(".csv"):
             df_up = pd.read_csv(archivo, dtype=str)
         else:
             df_up = pd.read_excel(archivo, dtype=str)
 
+        # Normalizar nombres de columnas
         df_up.columns = [c.strip().upper() for c in df_up.columns]
-        faltan = [c for c in COLUMNAS if c not in df_up.columns]
 
-        if faltan:
-            st.error(f"Faltan columnas requeridas: {faltan}")
+        # Verificar si está la columna principal
+        if "NUMERO DE ARTICULO" not in df_up.columns:
+            st.error("El archivo debe contener la columna: NUMERO DE ARTICULO")
         else:
             procesadas, errores = 0, []
+
             for _, row in df_up.iterrows():
                 try:
-                    upsert_articulo(
-                        row["NUMERO DE ARTICULO"],
-                        row["DESCRIPCION DEL ARTICULO"],
-                        row["PRECIOS MAYO"],
-                        row["DIVISA"],
-                    )
+                    numero_articulo = row["NUMERO DE ARTICULO"].strip()
+
+                    # Valores opcionales
+                    descripcion = row.get("DESCRIPCION DEL ARTICULO", "").strip()
+                    precio = row.get("PRECIOS MAYO", "").strip()
+                    divisa = row.get("DIVISA", "").strip()
+
+                    # Llamar función de inserción/actualización
+                    upsert_articulo(numero_articulo, descripcion, precio, divisa)
                     procesadas += 1
+
                 except Exception as e:
                     errores.append(f"{row.get('NUMERO DE ARTICULO','?')}: {e}")
 
+            # Mensajes de resultado
             st.success(f"Carga completada. Filas procesadas: {procesadas}")
             if errores:
                 st.warning("Algunas filas tuvieron errores:")
@@ -156,6 +164,5 @@ if archivo is not None:
 
 st.divider()
 st.caption("IRSADOSA · Streamlit")
-
 
 
