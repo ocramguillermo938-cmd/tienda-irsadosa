@@ -147,29 +147,27 @@ if resultados:
 
 # --- Mostrar no encontrados ---
 if no_encontrados:
-    st.subheader("Artículos no encontrados:")
-    st.write(", ".join(no_encontrados))
+    st.subheader("Artículos no encontrados")
+    st.write(", ".join(map(str, no_encontrados)))
 
     for nuevo in no_encontrados:
-        if st.checkbox(f"Agregar artículo {nuevo}?"):
+        with st.expander(f"Agregar {nuevo}", expanded=False):
             descripcion = st.text_input(f"Descripción para {nuevo}", key=f"desc_{nuevo}")
-            precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}")
+            precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}", help="Acepta coma o punto.")
+            divisa = st.selectbox(f"Divisa para {nuevo}", ["MXN", "USD"], key=f"div_{nuevo}")
 
-            if descripcion and precio:
-                try:
-                    float_precio = float(precio.strip())
-                except ValueError:
-                    st.error(f"❌ Precio inválido para {nuevo}: '{precio}'")
-                    float_precio = None
-
-                if float_precio is not None and st.button(f"Confirmar agregar {nuevo}", key=f"confirmar_{nuevo}"):
-                    nueva_fila = pd.DataFrame({
-                        'NUMERO DE ARTICULO': [str(nuevo)],
-                        'DESCRIPCION DEL ARTICULO': [descripcion],
-                        'PRECIOS MAYO': [float_precio]
-                    })
-
-                    st.write("✅ Fila que se va a guardar:", nueva_fila)
+            if st.button(f"Confirmar agregar {nuevo}", key=f"add_{nuevo}"):
+                if not descripcion or not precio:
+                    st.error("Completa descripción y precio.")
+                else:
+                    try:
+                        add_or_update_articulo(nuevo, descripcion, precio, divisa)
+                        st.success(f"✅ Artículo {nuevo} agregado/actualizado correctamente.")
+                        st.rerun()
+                    except ValueError as ve:
+                        st.error(f"Precio inválido: {ve}")
+                    except Exception as e:
+                        st.error(f"⚠️ Error al guardar {nuevo}: {e}")
 
                     # Agregar a Google Sheets
                     try:
