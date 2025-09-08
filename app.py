@@ -121,9 +121,10 @@ if resultados:
     df_resultados = pd.concat(resultados)
     st.dataframe(df_resultados)
 
-    # --- OPCIÓN PARA ELIMINAR CON BOTÓN ---
-    st.write("### Eliminar artículos:")
-    for idx, row in df_resultados.iterrows():
+# --- OPCIÓN PARA ELIMINAR CON BOTÓN ---
+st.write("### Eliminar artículos:")
+
+for idx, row in df_resultados.iterrows():
     col1, col2 = st.columns([3, 1])
     with col1:
         st.write(f"{row['NUMERO DE ARTICULO']} - {row['DESCRIPCION DEL ARTICULO']}")
