@@ -160,8 +160,6 @@ if numeros:
 
                         st.session_state['agregado'] = nuevo
                         st.rerun()
-                        except Exception as e:
-                            st.error(f"Error guardando {nuevo}: {e}")
 
 st.divider()
 st.caption("IRSADOSA · Streamlit")
