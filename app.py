@@ -78,81 +78,108 @@ def upsert_articulo(num, desc, precio, divisa):
 
 df = cargar_datos()
 
-# ---------------- Búsqueda manual ----------------
-st.subheader("Búsqueda manual")
-input_str = st.text_input("Ingresa números de artículo separados por comas (ej. 123,456,789)")
+# ---------------- Búsqueda manual o archivo ----------------
+st.subheader("Buscar artículos")
 
+# --- OPCIÓN 1: Input manual ---
+input_str = st.text_input("Ingresa los números de artículo separados por comas (ej. 123,456,789):")
+
+# --- OPCIÓN 2: Subir archivo ---
+archivo_subido = st.file_uploader("O sube un archivo Excel con los números", type=["xlsx"])
+
+numeros = []
 if input_str:
     numeros = [x.strip() for x in input_str.split(",") if x.strip()]
-    encontrados, faltantes = [], []
+elif archivo_subido:
+    try:
+        df_upload = pd.read_excel(archivo_subido, dtype=str)
+        if "NUMERO DE ARTICULO" in df_upload.columns:
+            numeros = df_upload["NUMERO DE ARTICULO"].dropna().tolist()
+        else:
+            st.error("❌ El archivo debe tener una columna llamada 'NUMERO DE ARTICULO'")
+    except Exception as e:
+        st.error(f"⚠️ Error al leer el archivo: {e}")
 
-    for n in numeros:
-        m = df[df["NUMERO DE ARTICULO"] == n]
-        (encontrados if not m.empty else faltantes).append(m if not m.empty else n)
+# Procesar búsqueda
+if numeros:
+    resultados = []
+    no_encontrados = []
 
-    if encontrados:
-        st.success("Resultados encontrados:")
-        st.dataframe(pd.concat(encontrados), use_container_width=True)
+    for num in numeros:
+        match = df[df["NUMERO DE ARTICULO"] == num]
+        if not match.empty:
+            resultados.append(match)
+        else:
+            no_encontrados.append(num)
 
-    if faltantes:
-        st.warning("No están en la lista: " + ", ".join(faltantes))
-        st.info("Puedes agregarlos aquí mismo:")
+    if resultados:
+        st.subheader("✅ Resultados encontrados:")
+        st.dataframe(pd.concat(resultados), use_container_width=True)
 
-        for n in faltantes:
-            with st.expander(f"Agregar {n}", expanded=False):
-                desc = st.text_input(f"Descripción para {n}", key=f"desc_{n}")
-                precio = st.text_input(f"Precio para {n}", key=f"precio_{n}")
-                divisa = st.selectbox(f"Divisa para {n}", ["MXN", "USD"], key=f"divisa_{n}")
-                if st.button(f"Confirmar agregar/actualizar {n}", key=f"ok_{n}"):
+    if no_encontrados:
+        st.subheader("⚠️ Artículos no encontrados:")
+        st.write(", ".join(no_encontrados))
+
+        for nuevo in no_encontrados:
+            if st.checkbox(f"Agregar artículo {nuevo}?"):
+                # Verifica duplicados
+                if not df[df["NUMERO DE ARTICULO"] == nuevo].empty:
+                    st.warning(f"⚠️ El artículo {nuevo} ya existe, no se agregará.")
+                    continue
+
+                descripcion = st.text_input(f"Descripción para {nuevo}", key=f"desc_{nuevo}")
+                precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}")
+                divisa = st.selectbox(f"Divisa para {nuevo}", ["MXN", "USD"], key=f"divisa_{nuevo}")
+
+                if descripcion and precio:
                     try:
-                        upsert_articulo(n, desc, precio, divisa)
-                        st.success(f"{n} guardado correctamente.")
-                    except Exception as e:
-                        st.error(f"Error guardando {n}: {e}")
+                        float_precio = float(precio.strip())
+                    except ValueError:
+                        st.error(f"❌ Precio inválido para {nuevo}: '{precio}'")
+                        float_precio = None
+
+                    if float_precio is not None and st.button(f"Confirmar agregar {nuevo}", key=f"confirmar_{nuevo}"):
+                        try:
+                            upsert_articulo(nuevo, descripcion, float_precio, divisa)
+                            st.success(f"✅ Artículo {nuevo} agregado correctamente")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error guardando {nuevo}: {e}")
 
 # ---------------- Carga masiva ----------------
 st.divider()
 st.subheader("Carga masiva (Excel/CSV) opcional")
 
 archivo = st.file_uploader(
-    "Sube un archivo con al menos la columna: NUMERO DE ARTICULO",
+    "Sube un archivo con columnas: NUMERO DE ARTICULO, DESCRIPCION DEL ARTICULO, PRECIOS MAYO, DIVISA",
     type=["xlsx", "xls", "csv"]
 )
 
 if archivo is not None:
     try:
-        # Leer archivo según formato
         if archivo.name.lower().endswith(".csv"):
             df_up = pd.read_csv(archivo, dtype=str)
         else:
             df_up = pd.read_excel(archivo, dtype=str)
 
-        # Normalizar nombres de columnas
         df_up.columns = [c.strip().upper() for c in df_up.columns]
 
-        # Verificar si está la columna principal
         if "NUMERO DE ARTICULO" not in df_up.columns:
             st.error("El archivo debe contener la columna: NUMERO DE ARTICULO")
         else:
             procesadas, errores = 0, []
-
             for _, row in df_up.iterrows():
                 try:
                     numero_articulo = row["NUMERO DE ARTICULO"].strip()
-
-                    # Valores opcionales
                     descripcion = row.get("DESCRIPCION DEL ARTICULO", "").strip()
                     precio = row.get("PRECIOS MAYO", "").strip()
-                    divisa = row.get("DIVISA", "").strip()
+                    divisa = row.get("DIVISA", "").strip() or "MXN"
 
-                    # Llamar función de inserción/actualización
                     upsert_articulo(numero_articulo, descripcion, precio, divisa)
                     procesadas += 1
-
                 except Exception as e:
                     errores.append(f"{row.get('NUMERO DE ARTICULO','?')}: {e}")
 
-            # Mensajes de resultado
             st.success(f"Carga completada. Filas procesadas: {procesadas}")
             if errores:
                 st.warning("Algunas filas tuvieron errores:")
@@ -164,5 +191,4 @@ if archivo is not None:
 
 st.divider()
 st.caption("IRSADOSA · Streamlit")
-
 
