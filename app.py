@@ -121,29 +121,37 @@ if resultados:
     df_resultados = pd.concat(resultados)
     st.dataframe(df_resultados)
 
-    # --- OPCIÓN PARA ELIMINAR CON BOTÓN ---
-    st.write("### Eliminar artículos:")
+    # 🔎 Buscar duplicados por NUMERO DE ARTICULO
+    duplicados = df_resultados[df_resultados.duplicated("NUMERO DE ARTICULO", keep=False)]
 
-    for idx, row in df_resultados.iterrows():
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.write(f"{row['NUMERO DE ARTICULO']} - {row['DESCRIPCION DEL ARTICULO']}")
-        with col2:
-            if st.button(f"🗑 Eliminar", key=f"del_{idx}"):
-               num_str = str(row["NUMERO DE ARTICULO"]).strip()
-               st.warning(f"¿Seguro que deseas eliminar {num_str}?")
-               if st.button(f"✅ Confirmar {num_str}", key=f"confirm_{idx}"):
-                   try:
-                       cell = ws.find(num_str)
-                       if cell:
-                           ws.delete_rows(cell.row)
-                           cargar_datos.clear()
-                           st.success(f"✅ Artículo {num_str} eliminado correctamente.")
-                           st.rerun()
-                       else:
-                           st.error(f"❌ No se encontró el artículo {num_str} en Google Sheets.")
-                   except Exception as e:
-                       st.error(f"⚠️ Error al eliminar {num_str}: {e}")
+    if not duplicados.empty:
+        st.warning("⚠️ Se encontraron artículos repetidos:")
+        st.dataframe(duplicados)
+
+        for idx, row in duplicados.iterrows():
+            num_str = str(row["NUMERO DE ARTICULO"]).strip()
+            desc = row["DESCRIPCION DEL ARTICULO"]
+
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.write(f"{num_str} - {desc}")
+            with col2:
+                if st.button(f"🗑 Eliminar duplicado", key=f"del_dup_{idx}"):
+                    try:
+                        # 🔹 Eliminar fila directamente en Google Sheets
+                        cell = ws.find(num_str)
+                        if cell:
+                            ws.delete_rows(cell.row)
+                            cargar_datos.clear()
+                            st.success(f"✅ Duplicado de {num_str} eliminado correctamente.")
+                            st.rerun()
+                        else:
+                            st.error(f"❌ No se encontró {num_str} en la hoja.")
+                    except Exception as e:
+                        st.error(f"⚠️ Error al eliminar {num_str}: {e}")
+    else:
+        st.info("No hay duplicados en los resultados.")
+
 
 # --- Mostrar no encontrados ---
 # ---------------- Artículos no encontrados ----------------
