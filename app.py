@@ -88,8 +88,10 @@ input_str = st.text_input("Ingresa los números de artículo separados por comas
 archivo_subido = st.file_uploader("O sube un archivo Excel con los números", type=["xlsx"])
 
 numeros = []
+
 if input_str:
-    numeros = [x.strip() for x in input_str.split(",") if x.strip()]
+    numeros = [x.strip() for x in input_str.split(",")]
+
 elif archivo_subido:
     try:
         df_upload = pd.read_excel(archivo_subido, dtype=str)
@@ -100,7 +102,7 @@ elif archivo_subido:
     except Exception as e:
         st.error(f"⚠️ Error al leer el archivo: {e}")
 
-# Procesar búsqueda
+# Procesar números si hay alguno
 if numeros:
     resultados = []
     no_encontrados = []
@@ -113,23 +115,28 @@ if numeros:
             no_encontrados.append(num)
 
     if resultados:
-        st.subheader("✅ Resultados encontrados:")
-        st.dataframe(pd.concat(resultados), use_container_width=True)
+        st.subheader("Resultados encontrados:")
+        df_resultados = pd.concat(resultados)
+        st.dataframe(df_resultados)
+
+        # --- OPCIÓN PARA ELIMINAR REPETIDOS ---
+        st.write("### Eliminar artículos:")
+        for idx, row in df_resultados.iterrows():
+            if st.checkbox(f"Eliminar artículo {row['NUMERO DE ARTICULO']} ({row['DESCRIPCION DEL ARTICULO']})", key=f"del_{idx}"):
+                df = df[df["NUMERO DE ARTICULO"] != row["NUMERO DE ARTICULO"]]
+                st.success(f"Artículo {row['NUMERO DE ARTICULO']} eliminado.")
+                # Guardar cambios en Google Sheets o archivo
+                df.to_csv("articulos.csv", index=False)
+                st.rerun()
 
     if no_encontrados:
-        st.subheader("⚠️ Artículos no encontrados:")
+        st.subheader("Artículos no encontrados:")
         st.write(", ".join(no_encontrados))
 
         for nuevo in no_encontrados:
             if st.checkbox(f"Agregar artículo {nuevo}?"):
-                # Verifica duplicados
-                if not df[df["NUMERO DE ARTICULO"] == nuevo].empty:
-                    st.warning(f"⚠️ El artículo {nuevo} ya existe, no se agregará.")
-                    continue
-
                 descripcion = st.text_input(f"Descripción para {nuevo}", key=f"desc_{nuevo}")
                 precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}")
-                divisa = st.selectbox(f"Divisa para {nuevo}", ["MXN", "USD"], key=f"divisa_{nuevo}")
 
                 if descripcion and precio:
                     try:
@@ -139,10 +146,20 @@ if numeros:
                         float_precio = None
 
                     if float_precio is not None and st.button(f"Confirmar agregar {nuevo}", key=f"confirmar_{nuevo}"):
-                        try:
-                            upsert_articulo(nuevo, descripcion, float_precio, divisa)
-                            st.success(f"✅ Artículo {nuevo} agregado correctamente")
-                            st.rerun()
+                        nueva_fila = pd.DataFrame({
+                            'NUMERO DE ARTICULO': [str(nuevo)],
+                            'DESCRIPCION DEL ARTICULO': [descripcion],
+                            'PRECIOS MAYO': [float_precio]
+                        })
+
+                        st.write("✅ Fila que se va a guardar:", nueva_fila)
+
+                        # Agregar la fila al Excel o Google Sheets
+                        df = pd.concat([df, nueva_fila], ignore_index=True)
+                        df.to_csv("articulos.csv", index=False)
+
+                        st.session_state['agregado'] = nuevo
+                        st.rerun()
                         except Exception as e:
                             st.error(f"Error guardando {nuevo}: {e}")
 
