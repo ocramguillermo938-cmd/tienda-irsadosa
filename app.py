@@ -146,26 +146,25 @@ if resultados:
                        st.error(f"⚠️ Error al eliminar {num_str}: {e}")
 
 # --- Mostrar no encontrados ---
+# ---------------- Artículos no encontrados ----------------
 if no_encontrados:
-    st.subheader("Artículos no encontrados")
-    st.write(", ".join(map(str, no_encontrados)))
+    st.subheader("Artículos no encontrados:")
+    st.write(", ".join(no_encontrados))
 
     for nuevo in no_encontrados:
-        with st.expander(f"Agregar {nuevo}", expanded=False):
+        if st.checkbox(f"Agregar artículo {nuevo}?"):
             descripcion = st.text_input(f"Descripción para {nuevo}", key=f"desc_{nuevo}")
-            precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}", help="Acepta coma o punto.")
-            divisa = st.selectbox(f"Divisa para {nuevo}", ["MXN", "USD"], key=f"div_{nuevo}")
+            precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}")
+            divisa = st.text_input(f"Divisa para {nuevo}", key=f"divisa_{nuevo}", value="MXN")
 
-            if st.button(f"Confirmar agregar {nuevo}", key=f"add_{nuevo}"):
-                if not descripcion or not precio:
-                    st.error("Completa descripción y precio.")
-                else:
+            if descripcion and precio and divisa:
+                if st.button(f"Confirmar agregar {nuevo}", key=f"confirmar_{nuevo}"):
                     try:
-                        add_or_update_articulo(nuevo, descripcion, precio, divisa)
-                        st.success(f"✅ Artículo {nuevo} agregado/actualizado correctamente.")
+                        # 👉 aquí usamos la función correcta
+                        upsert_articulo(nuevo, descripcion, precio, divisa)
+
+                        st.success(f"✅ Artículo {nuevo} agregado correctamente.")
                         st.rerun()
-                    except ValueError as ve:
-                        st.error(f"Precio inválido: {ve}")
                     except Exception as e:
                         st.error(f"⚠️ Error al guardar {nuevo}: {e}")
 
