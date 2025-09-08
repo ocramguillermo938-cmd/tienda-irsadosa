@@ -119,15 +119,25 @@ if numeros:
         df_resultados = pd.concat(resultados)
         st.dataframe(df_resultados)
 
-        # --- OPCIÓN PARA ELIMINAR REPETIDOS ---
+        # --- OPCIÓN PARA ELIMINAR CON BOTÓN ---
         st.write("### Eliminar artículos:")
         for idx, row in df_resultados.iterrows():
-            if st.checkbox(f"Eliminar artículo {row['NUMERO DE ARTICULO']} ({row['DESCRIPCION DEL ARTICULO']})", key=f"del_{idx}"):
-                df = df[df["NUMERO DE ARTICULO"] != row["NUMERO DE ARTICULO"]]
-                st.success(f"Artículo {row['NUMERO DE ARTICULO']} eliminado.")
-                # Guardar cambios en Google Sheets o archivo
-                df.to_csv("articulos.csv", index=False)
-                st.rerun()
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.write(f"{row['NUMERO DE ARTICULO']} - {row['DESCRIPCION DEL ARTICULO']}")
+            with col2:
+                if st.button(f"Eliminar", key=f"del_{idx}"):
+                    # Confirmación
+                    st.warning(f"¿Seguro que deseas eliminar {row['NUMERO DE ARTICULO']}?")
+                    if st.button(f"Confirmar {row['NUMERO DE ARTICULO']}", key=f"confirm_{idx}"):
+                        # Eliminar del DataFrame
+                        df = df[df["NUMERO DE ARTICULO"] != row["NUMERO DE ARTICULO"]]
+
+                        # Guardar cambios (Google Sheets o archivo local)
+                        df.to_csv("articulos.csv", index=False)
+
+                        st.success(f"✅ Artículo {row['NUMERO DE ARTICULO']} eliminado correctamente.")
+                        st.rerun()
 
     if no_encontrados:
         st.subheader("Artículos no encontrados:")
@@ -154,7 +164,7 @@ if numeros:
 
                         st.write("✅ Fila que se va a guardar:", nueva_fila)
 
-                        # Agregar la fila al Excel o Google Sheets
+                        # Agregar al archivo o Google Sheets
                         df = pd.concat([df, nueva_fila], ignore_index=True)
                         df.to_csv("articulos.csv", index=False)
 
