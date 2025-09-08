@@ -155,7 +155,6 @@ if no_encontrados:
         if st.checkbox(f"Agregar artículo {nuevo}?"):
             descripcion = st.text_input(f"Descripción para {nuevo}", key=f"desc_{nuevo}")
             precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}")
-            divisa = st.text_input(f"Divisa para {nuevo}", key=f"divisa_{nuevo}", value="MXN")
             divisa = st.selectbox(
                 f"Divisa para {nuevo}",
                 ["MXN", "USD", "EUR"],
