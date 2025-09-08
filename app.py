@@ -102,11 +102,12 @@ elif archivo_subido:
     except Exception as e:
         st.error(f"⚠️ Error al leer el archivo: {e}")
 
+# 🔹 Inicializamos listas siempre (para evitar NameError)
+resultados = []
+no_encontrados = []
+
 # Procesar números si hay alguno
 if numeros:
-    resultados = []
-    no_encontrados = []
-
     for num in numeros:
         match = df[df["NUMERO DE ARTICULO"] == num]
         if not match.empty:
@@ -114,6 +115,7 @@ if numeros:
         else:
             no_encontrados.append(num)
 
+# --- Mostrar resultados encontrados ---
 if resultados:
     st.subheader("Resultados encontrados:")
     df_resultados = pd.concat(resultados)
@@ -126,52 +128,59 @@ if resultados:
         with col1:
             st.write(f"{row['NUMERO DE ARTICULO']} - {row['DESCRIPCION DEL ARTICULO']}")
         with col2:
-            if st.button(f"Eliminar", key=f"del_{idx}"):
+            if st.button(f"🗑 Eliminar", key=f"del_{idx}"):
                 st.warning(f"¿Seguro que deseas eliminar {row['NUMERO DE ARTICULO']}?")
                 if st.button(f"✅ Confirmar {row['NUMERO DE ARTICULO']}", key=f"confirm_{idx}"):
                     try:
                         cell = ws.find(row["NUMERO DE ARTICULO"])
                         if cell:
                             ws.delete_rows(cell.row)
-                            cargar_datos.clear()
+                            cargar_datos.clear()  # limpia el cache
                             st.success(f"✅ Artículo {row['NUMERO DE ARTICULO']} eliminado correctamente.")
                             st.rerun()
                         else:
                             st.error("❌ No se encontró el artículo en Google Sheets.")
                     except Exception as e:
                         st.error(f"⚠️ Error al eliminar: {e}")
-                    
-    if no_encontrados:
-        st.subheader("Artículos no encontrados:")
-        st.write(", ".join(no_encontrados))
 
-        for nuevo in no_encontrados:
-            if st.checkbox(f"Agregar artículo {nuevo}?"):
-                descripcion = st.text_input(f"Descripción para {nuevo}", key=f"desc_{nuevo}")
-                precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}")
+# --- Mostrar no encontrados ---
+if no_encontrados:
+    st.subheader("Artículos no encontrados:")
+    st.write(", ".join(no_encontrados))
 
-                if descripcion and precio:
+    for nuevo in no_encontrados:
+        if st.checkbox(f"Agregar artículo {nuevo}?"):
+            descripcion = st.text_input(f"Descripción para {nuevo}", key=f"desc_{nuevo}")
+            precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}")
+
+            if descripcion and precio:
+                try:
+                    float_precio = float(precio.strip())
+                except ValueError:
+                    st.error(f"❌ Precio inválido para {nuevo}: '{precio}'")
+                    float_precio = None
+
+                if float_precio is not None and st.button(f"Confirmar agregar {nuevo}", key=f"confirmar_{nuevo}"):
+                    nueva_fila = pd.DataFrame({
+                        'NUMERO DE ARTICULO': [str(nuevo)],
+                        'DESCRIPCION DEL ARTICULO': [descripcion],
+                        'PRECIOS MAYO': [float_precio]
+                    })
+
+                    st.write("✅ Fila que se va a guardar:", nueva_fila)
+
+                    # Agregar a Google Sheets
                     try:
-                        float_precio = float(precio.strip())
-                    except ValueError:
-                        st.error(f"❌ Precio inválido para {nuevo}: '{precio}'")
-                        float_precio = None
-
-                    if float_precio is not None and st.button(f"Confirmar agregar {nuevo}", key=f"confirmar_{nuevo}"):
-                        nueva_fila = pd.DataFrame({
-                            'NUMERO DE ARTICULO': [str(nuevo)],
-                            'DESCRIPCION DEL ARTICULO': [descripcion],
-                            'PRECIOS MAYO': [float_precio]
-                        })
-
-                        st.write("✅ Fila que se va a guardar:", nueva_fila)
-
-                        # Agregar al archivo o Google Sheets
-                        df = pd.concat([df, nueva_fila], ignore_index=True)
-                        df.to_csv("articulos.csv", index=False)
-
-                        st.session_state['agregado'] = nuevo
+                        ws.append_row([
+                            str(nuevo),
+                            descripcion,
+                            float_precio
+                        ])
+                        cargar_datos.clear()
+                        st.success(f"✅ Artículo {nuevo} agregado correctamente.")
                         st.rerun()
+                    except Exception as e:
+                        st.error(f"⚠️ Error al agregar: {e}")
 
 st.divider()
 st.caption("IRSADOSA · Streamlit")
