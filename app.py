@@ -155,7 +155,7 @@ if resultados:
 
 # --- Mostrar no encontrados ---
 # ---------------- Artículos no encontrados ----------------
-if no_encontrados:
+with st.expander("➕ Artículos no encontrados"):
     st.subheader("Artículos no encontrados:")
     st.write(", ".join(no_encontrados))
 
@@ -169,30 +169,15 @@ if no_encontrados:
                 key=f"divisa_{nuevo}"
             )
 
-
             if descripcion and precio and divisa:
                 if st.button(f"Confirmar agregar {nuevo}", key=f"confirmar_{nuevo}"):
                     try:
-                        # 👉 aquí usamos la función correcta
                         upsert_articulo(nuevo, descripcion, precio, divisa)
-
                         st.success(f"✅ Artículo {nuevo} agregado correctamente.")
                         st.rerun()
                     except Exception as e:
                         st.error(f"⚠️ Error al guardar {nuevo}: {e}")
 
-                    # Agregar a Google Sheets
-                    try:
-                        ws.append_row([
-                            str(nuevo),
-                            descripcion,
-                            float_precio
-                        ])
-                        cargar_datos.clear()
-                        st.success(f"✅ Artículo {nuevo} agregado correctamente.")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"⚠️ Error al agregar: {e}")
 
 st.divider()
 st.caption("IRSADOSA · Streamlit")
