@@ -82,10 +82,10 @@ df = cargar_datos()
 st.subheader("Buscar artículos")
 
 # --- OPCIÓN 1: Input manual ---
-input_str = st.text_input("Ingresa los números de artículo separados por comas (ej. 123,456,789):")
+input_str = st.text_input("Ingresa los números de artículo separados por comas (ej. 38459582,92692284):")
 
 # --- OPCIÓN 2: Subir archivo ---
-archivo_subido = st.file_uploader("O sube un archivo Excel con los números", type=["xlsx"])
+archivo_subido = st.file_uploader("Sube un archivo Excel con los números debajo del titulo NUMERO DE ARTICULO", type=["xlsx"])
 
 numeros = []
 
@@ -165,7 +165,7 @@ with st.expander("➕ Artículos no encontrados"):
             precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}")
             divisa = st.selectbox(
                 f"Divisa para {nuevo}",
-                ["MXN", "USD", "EUR"],
+                ["USD", "MXN", "EUR"],
                 key=f"divisa_{nuevo}"
             )
 
