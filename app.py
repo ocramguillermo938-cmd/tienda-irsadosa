@@ -172,7 +172,7 @@ if no_encontrados:
         if st.checkbox(f"Agregar artículo {nuevo}?", key=chk_key):
             st.session_state[exp_key] = True
 
-        with st.expander(f"Agregar {nuevo}", expanded=st.session_state[exp_key]):
+        with st.expander(f" ➕ Agregar {nuevo}", expanded=st.session_state[exp_key]):
             # 👇 Hack: al abrir el expander, lanzar JS para enfocar el campo de descripción
             st.markdown(
                 f"""
@@ -189,7 +189,7 @@ if no_encontrados:
             with st.form(key=form_key):
                 descripcion = st.text_input(f"Descripción para {nuevo}", key=f"desc_{nuevo}")
                 precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}")
-                divisa = st.selectbox(f"Divisa para {nuevo}", ["MXN", "USD", "EUR"], key=f"divisa_{nuevo}")
+                divisa = st.selectbox(f"Divisa para {nuevo}", ["USD", "MXN", "EUR"], key=f"divisa_{nuevo}")
                 submitted = st.form_submit_button("Confirmar agregar")
 
                 if submitted:
