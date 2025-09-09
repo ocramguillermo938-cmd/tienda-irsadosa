@@ -169,7 +169,7 @@ if no_encontrados:
             st.session_state[exp_key] = False
 
         # Checkbox para decidir si se abre el expander
-        chk_val = st.checkbox(f"Agregar artículo {nuevo}?", key=chk_key)
+        chk_val = st.checkbox(f" ➕ Agregar artículo {nuevo}?", key=chk_key)
         if chk_val:
             st.session_state[exp_key] = True
 
@@ -191,7 +191,7 @@ if no_encontrados:
             with st.form(key=form_key):
                 descripcion = st.text_input("Descripción", key=f"desc_{nuevo}")
                 precio = st.text_input("Precio", key=f"precio_{nuevo}")
-                divisa = st.selectbox("Divisa", ["MXN", "USD", "EUR"], key=f"divisa_{nuevo}")
+                divisa = st.selectbox("Divisa", ["USD", "MXN", "EUR"], key=f"divisa_{nuevo}")
                 submitted = st.form_submit_button("Confirmar agregar")
 
                 if submitted:
