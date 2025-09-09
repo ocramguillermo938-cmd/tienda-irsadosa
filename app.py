@@ -160,20 +160,22 @@ if no_encontrados:
     st.write(", ".join(no_encontrados))
 
     for nuevo in no_encontrados:
-        chk_key = f"chk_add_{str(nuevo)}"
-        exp_key = f"exp_add_{str(nuevo)}"
-        form_key = f"form_add_{str(nuevo)}"
+        chk_key = f"chk_add_{nuevo}"
+        exp_key = f"exp_add_{nuevo}"
+        form_key = f"form_add_{nuevo}"
 
-        if chk_key not in st.session_state:
-            st.session_state[chk_key] = False
+        # Estado inicial para el expander (solo control interno, no ligado al checkbox)
         if exp_key not in st.session_state:
             st.session_state[exp_key] = False
 
-        if st.checkbox(f"Agregar artículo {nuevo}?", key=chk_key):
+        # Checkbox para decidir si se abre el expander
+        chk_val = st.checkbox(f"Agregar artículo {nuevo}?", key=chk_key)
+        if chk_val:
             st.session_state[exp_key] = True
 
-        with st.expander(f" ➕ Agregar {nuevo}", expanded=st.session_state[exp_key]):
-            # 👇 Hack: al abrir el expander, lanzar JS para enfocar el campo de descripción
+        # Expander controlado por session_state
+        with st.expander(f"Agregar {nuevo}", expanded=st.session_state[exp_key]):
+            # Hack para autofocus en el campo de descripción
             st.markdown(
                 f"""
                 <script>
@@ -187,9 +189,9 @@ if no_encontrados:
             )
 
             with st.form(key=form_key):
-                descripcion = st.text_input(f"Descripción para {nuevo}", key=f"desc_{nuevo}")
-                precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}")
-                divisa = st.selectbox(f"Divisa para {nuevo}", ["USD", "MXN", "EUR"], key=f"divisa_{nuevo}")
+                descripcion = st.text_input("Descripción", key=f"desc_{nuevo}")
+                precio = st.text_input("Precio", key=f"precio_{nuevo}")
+                divisa = st.selectbox("Divisa", ["MXN", "USD", "EUR"], key=f"divisa_{nuevo}")
                 submitted = st.form_submit_button("Confirmar agregar")
 
                 if submitted:
@@ -202,13 +204,15 @@ if no_encontrados:
                     if precio_val is not None:
                         try:
                             upsert_articulo(nuevo, descripcion, precio_val, divisa)
-                            st.session_state[exp_key] = False
-                            st.session_state[chk_key] = False
                             st.success(f"✅ Artículo {nuevo} agregado correctamente.")
-                            cargar_datos.clear()
+
+                            # Reset de estados sin tocar widgets existentes
+                            st.session_state[exp_key] = False
                             st.experimental_rerun()
+
                         except Exception as e:
                             st.error(f"⚠️ Error al guardar {nuevo}: {e}")
+
 
 
 st.divider()
