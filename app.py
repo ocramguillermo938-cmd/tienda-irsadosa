@@ -154,29 +154,61 @@ if resultados:
 
 
 # --- Mostrar no encontrados ---
-# ---------------- Artículos no encontrados ----------------
-with st.expander("➕ Artículos no encontrados"):
+# ---------------- Artículos no encontrados (expander + form + autofocus) ----------------
+if no_encontrados:
     st.subheader("Artículos no encontrados:")
     st.write(", ".join(no_encontrados))
 
     for nuevo in no_encontrados:
-        if st.checkbox(f"Agregar artículo {nuevo}?"):
-            descripcion = st.text_input(f"Descripción para {nuevo}", key=f"desc_{nuevo}")
-            precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}")
-            divisa = st.selectbox(
-                f"Divisa para {nuevo}",
-                ["USD", "MXN", "EUR"],
-                key=f"divisa_{nuevo}"
+        chk_key = f"chk_add_{str(nuevo)}"
+        exp_key = f"exp_add_{str(nuevo)}"
+        form_key = f"form_add_{str(nuevo)}"
+
+        if chk_key not in st.session_state:
+            st.session_state[chk_key] = False
+        if exp_key not in st.session_state:
+            st.session_state[exp_key] = False
+
+        if st.checkbox(f"Agregar artículo {nuevo}?", key=chk_key):
+            st.session_state[exp_key] = True
+
+        with st.expander(f"Agregar {nuevo}", expanded=st.session_state[exp_key]):
+            # 👇 Hack: al abrir el expander, lanzar JS para enfocar el campo de descripción
+            st.markdown(
+                f"""
+                <script>
+                setTimeout(function(){{
+                    var el = window.parent.document.querySelector('input[id="desc_{nuevo}"]');
+                    if(el) el.focus();
+                }}, 300);
+                </script>
+                """,
+                unsafe_allow_html=True
             )
 
-            if descripcion and precio and divisa:
-                if st.button(f"Confirmar agregar {nuevo}", key=f"confirmar_{nuevo}"):
+            with st.form(key=form_key):
+                descripcion = st.text_input(f"Descripción para {nuevo}", key=f"desc_{nuevo}")
+                precio = st.text_input(f"Precio para {nuevo}", key=f"precio_{nuevo}")
+                divisa = st.selectbox(f"Divisa para {nuevo}", ["MXN", "USD", "EUR"], key=f"divisa_{nuevo}")
+                submitted = st.form_submit_button("Confirmar agregar")
+
+                if submitted:
                     try:
-                        upsert_articulo(nuevo, descripcion, precio, divisa)
-                        st.success(f"✅ Artículo {nuevo} agregado correctamente.")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"⚠️ Error al guardar {nuevo}: {e}")
+                        precio_val = float(str(precio).replace(",", ".").strip())
+                    except Exception:
+                        st.error(f"❌ Precio inválido para {nuevo}: '{precio}'")
+                        precio_val = None
+
+                    if precio_val is not None:
+                        try:
+                            upsert_articulo(nuevo, descripcion, precio_val, divisa)
+                            st.session_state[exp_key] = False
+                            st.session_state[chk_key] = False
+                            st.success(f"✅ Artículo {nuevo} agregado correctamente.")
+                            cargar_datos.clear()
+                            st.experimental_rerun()
+                        except Exception as e:
+                            st.error(f"⚠️ Error al guardar {nuevo}: {e}")
 
 
 st.divider()
