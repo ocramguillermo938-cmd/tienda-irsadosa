@@ -208,7 +208,8 @@ if no_encontrados:
 
                             # Reset de estados sin tocar widgets existentes
                             st.session_state[exp_key] = False
-                            st.experimental_rerun()
+                            st.rerun()
+
 
                         except Exception as e:
                             st.error(f"⚠️ Error al guardar {nuevo}: {e}")
