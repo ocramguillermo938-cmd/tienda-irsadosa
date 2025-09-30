@@ -42,10 +42,10 @@ COLUMNAS = ["NUMERO DE ARTICULO", "DESCRIPCION DEL ARTICULO", "PRECIOS MAYO", "D
 @st.cache_data(ttl=5)
 def cargar_datos():
     registros = ws.get_all_records()
-    df = pd.DataFrame(registros, dtype=str)
+    df = pd.DataFrame(registros)  # 👈 ya no fuerzas strings
     if df.empty:
         df = pd.DataFrame(columns=COLUMNAS)
-    for c in COLUMNAS:  # asegura que siempre estén las columnas
+    for c in COLUMNAS:
         if c not in df.columns:
             df[c] = ""
     return df
