@@ -36,27 +36,41 @@ def conectar_hoja():
 
 ws = conectar_hoja()
 
-# ---------------- Utilidades de datos ----------------
+# -------------------------------
+# 🧰 Utilidades de datos
+# -------------------------------
+
 COLUMNAS = ["NUMERO DE ARTICULO", "DESCRIPCION DEL ARTICULO", "PRECIOS MAYO", "DIVISA"]
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=60)
 def cargar_datos():
+    """Carga los registros desde Google Sheets y asegura que existan las columnas requeridas."""
     registros = ws.get_all_records()
-    df = pd.DataFrame(registros)  # 👈 ya no fuerzas strings
+    df = pd.DataFrame(registros, dtype=str)
+
     if df.empty:
         df = pd.DataFrame(columns=COLUMNAS)
+
+    # Asegurar que todas las columnas existan
     for c in COLUMNAS:
         if c not in df.columns:
             df[c] = ""
+
     return df
 
+
 def upsert_articulo(num, desc, precio, divisa):
-    """Actualiza si existe (col A), si no existe agrega al final."""
+    """
+    Actualiza un artículo si ya existe (columna A),
+    o lo agrega al final si no existe.
+    """
+
+    # Limpieza y formato de los campos
     num = str(num).strip()
     desc = str(desc).strip()
     divisa = str(divisa).strip().upper()
 
-    # Precio: soporta coma o punto
+    # Normalizar el precio (acepta coma o punto)
     precio_str = str(precio).replace(",", ".").strip()
     try:
         precio_val = float(precio_str)
@@ -64,25 +78,26 @@ def upsert_articulo(num, desc, precio, divisa):
         raise ValueError(f"Precio inválido: {precio}")
 
     try:
+        # Buscar si ya existe el número de artículo
         cell = ws.find(num)
+
+        # Si lo encuentra en la columna 1 → actualiza
         if cell and cell.col == 1:
             ws.update_cell(cell.row, 2, desc)
             ws.update_cell(cell.row, 3, precio_val)
             ws.update_cell(cell.row, 4, divisa)
         else:
+            # Si no existe → agrega nuevo
             ws.append_row([num, desc, precio_val, divisa], value_input_option="USER_ENTERED")
+
     except gspread.exceptions.CellNotFound:
+        # Si no se encontró, agregar de todos modos
         ws.append_row([num, desc, precio_val, divisa], value_input_option="USER_ENTERED")
 
-if st.button("🔄 Refrescar datos"):
-    cargar_datos.clear()  # limpia la caché
-    st.rerun()            # vuelve a correr la app
-
-df = cargar_datos()
-
-# Normaliza precios como float
-if not df.empty:
-   df["NUMERO DE ARTICULO"] = df["NUMERO DE ARTICULO"].astype(str).str.strip()
+    # Refrescar caché
+    cargar_datos.clear()
+    df = cargar_datos()
+    return df
 
 # ---------------- Búsqueda manual o archivo ----------------
 st.subheader("Buscar artículos")
