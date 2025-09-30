@@ -82,7 +82,7 @@ df = cargar_datos()
 
 # Normaliza precios como float
 if not df.empty:
-    df["PRECIOS MAYO"] = pd.to_numeric(df["PRECIOS MAYO"], errors="coerce")
+   df["NUMERO DE ARTICULO"] = df["NUMERO DE ARTICULO"].astype(str).str.strip()
 
 # ---------------- Búsqueda manual o archivo ----------------
 st.subheader("Buscar artículos")
