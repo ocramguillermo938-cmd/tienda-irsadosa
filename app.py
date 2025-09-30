@@ -114,7 +114,7 @@ no_encontrados = []
 # Procesar números si hay alguno
 if numeros:
     for num in numeros:
-        match = df[df["NUMERO DE ARTICULO"] == num]
+        match = df["NUMERO DE ARTICULO"] == num]
         if not match.empty:
             resultados.append(match)
         else:
