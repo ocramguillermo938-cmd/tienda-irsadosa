@@ -90,12 +90,15 @@ st.subheader("Buscar artículos")
 input_str = st.text_input("Ingresa los números de artículo separados por comas (ej. 38459582,92692284):")
 
 # --- OPCIÓN 2: Subir archivo ---
-archivo_subido = st.file_uploader("Sube un archivo Excel con los números debajo del titulo NUMERO DE ARTICULO", type=["xlsx"])
+archivo_subido = st.file_uploader(
+    "Sube un archivo Excel con los números debajo del título NUMERO DE ARTICULO", 
+    type=["xlsx"]
+)
 
 numeros = []
 
 if input_str:
-    numeros = [x.strip() for x in input_str.split(",")]
+    numeros = [x.strip() for x in input_str.split(",") if x.strip()]
 
 elif archivo_subido:
     try:
@@ -111,10 +114,14 @@ elif archivo_subido:
 resultados = []
 no_encontrados = []
 
+# ✅ Cargar datos una vez antes del bucle
+df = cargar_datos()
+
 # Procesar números si hay alguno
 if numeros:
     for num in numeros:
-        match = df["NUMERO DE ARTICULO"] == num
+        # ✅ Buscar coincidencia correctamente
+        match = df[df["NUMERO DE ARTICULO"] == num]
         if not match.empty:
             resultados.append(match)
         else:
@@ -157,8 +164,6 @@ if resultados:
     else:
         st.info("No hay duplicados en los resultados.")
 
-
-# --- Mostrar no encontrados ---
 # ---------------- Artículos no encontrados (expander + form + autofocus) ----------------
 if no_encontrados:
     st.subheader("Artículos no encontrados:")
