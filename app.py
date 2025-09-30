@@ -39,7 +39,7 @@ ws = conectar_hoja()
 # ---------------- Utilidades de datos ----------------
 COLUMNAS = ["NUMERO DE ARTICULO", "DESCRIPCION DEL ARTICULO", "PRECIOS MAYO", "DIVISA"]
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=5)
 def cargar_datos():
     registros = ws.get_all_records()
     df = pd.DataFrame(registros, dtype=str)
@@ -74,9 +74,15 @@ def upsert_articulo(num, desc, precio, divisa):
     except gspread.exceptions.CellNotFound:
         ws.append_row([num, desc, precio_val, divisa], value_input_option="USER_ENTERED")
 
-    cargar_datos.clear()  # refresca caché
+if st.button("🔄 Refrescar datos"):
+    cargar_datos.clear()  # limpia la caché
+    st.rerun()            # vuelve a correr la app
 
 df = cargar_datos()
+
+# Normaliza precios como float
+if not df.empty:
+    df["PRECIOS MAYO"] = pd.to_numeric(df["PRECIOS MAYO"], errors="coerce")
 
 # ---------------- Búsqueda manual o archivo ----------------
 st.subheader("Buscar artículos")
